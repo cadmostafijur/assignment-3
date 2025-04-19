@@ -1,0 +1,204 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Book Appointment</title>
+    <style>
+        body {
+            font-family: 'Poppins', sans-serif;
+            background: linear-gradient(to right, #74ebd5, #acb6e5);
+            margin: 0;
+            padding: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            flex-direction: column;
+        }
+        .container {
+            background: rgba(255, 255, 255, 0.95);
+            padding: 40px 50px;
+            border-radius: 15px;
+            box-shadow: 0 8px 16px rgba(0, 0, 0, 0.2);
+            width: 100%;
+            max-width: 450px;
+            animation: fadeIn 1s ease-in-out;
+        }
+        h2 {
+            text-align: center;
+            color: #333;
+            margin-bottom: 20px;
+            font-weight: 600;
+            font-size: 28px;
+        }
+        form input, form textarea, form select, form button {
+            width: 100%;
+            padding: 12px 15px;
+            margin-top: 12px;
+            border: 1px solid #ccc;
+            border-radius: 8px;
+            box-sizing: border-box;
+            font-size: 15px;
+            transition: all 0.3s ease;
+        }
+        form input:focus, form textarea:focus, form select:focus {
+            border-color: #007bff;
+            box-shadow: 0 0 8px rgba(0, 123, 255, 0.3);
+            outline: none;
+        }
+        form textarea {
+            resize: vertical;
+            min-height: 80px;
+        }
+        form button {
+            background: linear-gradient(to right, #00c6ff, #0072ff);
+            color: white;
+            border: none;
+            cursor: pointer;
+            font-weight: bold;
+            letter-spacing: 1px;
+        }
+        form button:hover {
+            background: linear-gradient(to right, #0072ff, #00c6ff);
+        }
+        ul {
+            background: #ffe0e0;
+            border: 1px solid #ff9999;
+            padding: 12px;
+            border-radius: 8px;
+            list-style-type: none;
+            margin-top: 15px;
+        }
+        ul li {
+            color: #cc0000;
+            font-size: 14px;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(-20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        /* Admin login popup */
+        #adminOverlay {
+            display: none;
+            position: fixed;
+            top: 0; left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.5);
+            z-index: 999;
+        }
+        #adminForm {
+            display: none;
+            position: fixed;
+            top: 50%; left: 50%;
+            transform: translate(-50%, -50%);
+            background: #fff;
+            padding: 20px;
+            border-radius: 15px;
+            box-shadow: 0 0 15px rgba(0,0,0,0.4);
+            width: 300px;
+            z-index: 1000;
+            text-align: center;
+        }
+        #adminButton {
+            margin-top: 5px;
+            padding: 10px 20px;
+            background: linear-gradient(to right, #00c6ff, #0072ff);
+            color: white;
+            font-weight: bold;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            letter-spacing: 1px;
+        }
+        #adminButton:hover {
+            background: linear-gradient(to right, #0072ff, #00c6ff);
+        }
+        #closeAdminForm {
+            background: red;
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            margin-top: 10px;
+            border-radius: 6px;
+            cursor: pointer;
+        }
+    </style>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap" rel="stylesheet">
+</head>
+<body>
+    <div class="container">
+        <h2>Book Your Car Appointment</h2>
+
+        {% with messages = get_flashed_messages() %}
+          {% if messages %}
+            <ul>{% for msg in messages %}<li>{{ msg }}</li>{% endfor %}</ul>
+          {% endif %}
+        {% endwith %}
+
+        <form method="post" action="/book">
+            <input name="name" required placeholder="Name">
+            <textarea name="address" required placeholder="Address"></textarea>
+            <input name="phone" required placeholder="Phone">
+            <input name="car_license" required placeholder="Car License">
+            <input name="car_engine" required placeholder="Car Engine">
+            <input type="date" name="appointment_date" required>
+            <select name="mechanic" required>
+                <option value="">-- Select Mechanic --</option>
+                {% for m in mechanics %}
+                    <option value="{{ m.id }}">{{ m.name }}</option>
+                {% endfor %}
+            </select>
+            <button type="submit">Book</button>
+        </form>
+    </div>
+
+    <!-- Admin Login Button -->
+    <button id="adminButton" onclick="openAdminForm()">Admin Login</button>
+
+    <!-- Popup Overlay -->
+    <div id="adminOverlay" onclick="closeAdminForm()"></div>
+
+    <!-- Admin Password Popup Form -->
+    <div id="adminForm">
+        <form method="POST" action="{{ url_for('admin_login') }}">
+            <input type="password" name="admin_password" placeholder="Enter Admin Password" required><br><br>
+            <button type="submit">Login</button><br>
+        </form>
+        <button id="closeAdminForm" onclick="closeAdminForm()">Cancel</button>
+    </div>
+
+    <!-- JavaScript to toggle popup -->
+    <script>
+        function openAdminForm() {
+            document.getElementById('adminForm').style.display = 'block';
+            document.getElementById('adminOverlay').style.display = 'block';
+        }
+        function closeAdminForm() {
+            document.getElementById('adminForm').style.display = 'none';
+            document.getElementById('adminOverlay').style.display = 'none';
+        }
+
+        // (Optional) Mechanic slots update logic
+        function updateMechanicSlots() {
+            const dateInput = document.querySelector('input[name="appointment_date"]').value;
+            if (!dateInput) return;
+
+            fetch(`/slots?date=${dateInput}`)
+                .then(response => response.json())
+                .then(data => {
+                    const mechanicSelect = document.querySelector('select[name="mechanic"]');
+                    [...mechanicSelect.options].forEach(option => {
+                        const mechId = option.value;
+                        if (data[mechId] !== undefined) {
+                            option.textContent = `${option.textContent.split('(')[0]} (${data[mechId]} slots left)`;
+                            option.disabled = data[mechId] <= 0;
+                        }
+                    });
+                });
+        }
+
+        document.querySelector('input[name="appointment_date"]').addEventListener('change', updateMechanicSlots);
+    </script>
+</body>
+</html>
